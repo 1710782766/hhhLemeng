@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# macOS system files
+.DS_Store
+*.AppleDouble
+.LSOverride
+._*
+
+# Claude Code config
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logging.log
+
+# Runtime data (can be regenerated)
+hhh_lemeng/logging.log
+hhh_lemeng/nhsoft_token_cache.json
+hhh_lemeng/handler/data/*.json
+!hhh_lemeng/handler/data/README.md
+
+# Screenshots
+*.png
+screenshot.png
+
+# Large files
+*.mp4
+*.mov
+*.zip
+*.tar.gz
