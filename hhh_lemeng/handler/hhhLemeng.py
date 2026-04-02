@@ -10,7 +10,7 @@ from hhh_lemeng.handler.common.lemeng.config import (
     OPERATOR,
 )
 from hhh_lemeng.handler.common.lemeng.address_db import get_address_db
-from hhh_lemeng.handler.common.lemeng.data_path import get_inventory_category_map_file
+from hhh_lemeng.handler.common.lemeng.inventory_storage import get_inventory_storage
 
 if TYPE_CHECKING:
     from hhh_lemeng.handler.service.hhhLemengService import HhhLemengService
@@ -152,17 +152,13 @@ class ShopCategoryFind(BaseHandler):
             return
 
         # 读取库存商品分类映射
-        category_map_file = get_inventory_category_map_file()
+        inventory_storage = get_inventory_storage()
+        category_map = inventory_storage.get_category_map()
 
-        if not category_map_file.exists():
+        if not category_map:
             # 没有缓存时返回全部分类
             await self.response_success({}, result, msg)
             return
-
-        import json
-
-        with open(category_map_file, "r", encoding="utf-8") as f:
-            category_map = json.load(f)
 
         # 统计每个分类下有多少有库存商品
         category_item_count = {}

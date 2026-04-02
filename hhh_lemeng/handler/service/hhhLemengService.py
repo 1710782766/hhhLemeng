@@ -10,10 +10,7 @@ import tornado
 
 from hhh_lemeng.handler.common.lemeng.error import LemRequestError
 from hhh_lemeng.handler.common.lemeng.token import NhsoftTokenManager
-from hhh_lemeng.handler.common.lemeng.data_path import (
-    get_inventory_nums_file,
-    get_inventory_category_map_file,
-)
+from hhh_lemeng.handler.common.lemeng.inventory_storage import get_inventory_storage
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -457,20 +454,11 @@ class HhhLemengService:
         req_url = f"{self.host}/api/nhsoft.amazon.basic.item.find/v2"
 
         # 读取库存商品编码列表
-        inventory_item_nums = []
-        try:
-            with open(get_inventory_nums_file(), "r", encoding="utf-8") as f:
-                inventory_item_nums = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+        inventory_storage = get_inventory_storage()
+        inventory_item_nums = inventory_storage.get_item_nums()
 
         # 读取商品分类映射
-        category_map = {}
-        try:
-            with open(get_inventory_category_map_file(), "r", encoding="utf-8") as f:
-                category_map = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+        category_map = inventory_storage.get_category_map()
 
         req_data = {
             "page_no": 1,

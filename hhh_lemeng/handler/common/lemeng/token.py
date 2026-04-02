@@ -1,11 +1,14 @@
-import os
 import json
 from pathlib import Path
 import time
 import base64
 import urllib.parse
+from typing import Optional, Union
+
 import tornado.httpclient
 import tornado.locks
+
+from .storage import Storage, FileStorage
 
 
 class NhsoftTokenManager:
@@ -24,13 +27,21 @@ class NhsoftTokenManager:
         token_file_path: str = "./nhsoft_token_cache.json",
         expire_advance_seconds: int = 120,
         request_timeout: int = 15,
+        storage: Optional[Storage] = None,
     ):
         self.app_id = app_id
         self.secret = secret
-        self.token_file_path = work_path / token_file_path
         self.expire_advance_seconds = expire_advance_seconds
         self.request_timeout = request_timeout
         self.redirect_uri = redirect_uri
+
+        # 使用统一的存储抽象层（向后兼容文件路径方式）
+        if storage is not None:
+            self._storage: Optional[Storage] = storage
+        else:
+            # 兼容模式：使用原来的文件路径
+            self._storage = None
+            self._legacy_token_file_path = work_path / token_file_path
 
         self._http = tornado.httpclient.AsyncHTTPClient()
         self._refresh_lock = tornado.locks.Lock()
@@ -177,11 +188,20 @@ class NhsoftTokenManager:
         return now < (expire_at - self.expire_advance_seconds)
 
     def _load_token_from_file(self) -> dict | None:
-        if not os.path.exists(self.token_file_path):
+        # 使用统一的存储抽象层
+        if self._storage is not None:
+            data = self._storage.load()
+            if isinstance(data, dict) and data.get("access_token"):
+                return data
+            return None
+
+        # 兼容模式：使用原来的文件方式
+        import os
+        if not os.path.exists(self._legacy_token_file_path):
             return None
 
         try:
-            with open(self.token_file_path, "r", encoding="utf-8") as f:
+            with open(self._legacy_token_file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, dict):
                     return data
@@ -191,10 +211,16 @@ class NhsoftTokenManager:
         return None
 
     def _save_token_to_file(self, token_data: dict) -> None:
-        # 确保目录存在
-        folder = os.path.dirname(os.path.abspath(self.token_file_path))
+        # 使用统一的存储抽象层
+        if self._storage is not None:
+            self._storage.save(token_data)
+            return
+
+        # 兼容模式：使用原来的文件方式
+        import os
+        folder = os.path.dirname(os.path.abspath(self._legacy_token_file_path))
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
 
-        with open(self.token_file_path, "w", encoding="utf-8") as f:
+        with open(self._legacy_token_file_path, "w", encoding="utf-8") as f:
             json.dump(token_data, f, ensure_ascii=False, indent=2)

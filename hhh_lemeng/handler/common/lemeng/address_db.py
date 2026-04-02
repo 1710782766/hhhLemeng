@@ -3,39 +3,28 @@
 使用本地 JSON 文件存储地址与乐檬客户FID的映射关系
 """
 
-import json
 import time
-from pathlib import Path
 from typing import Dict, List, Optional
+
+from .data_path import get_address_db_file
+from .storage import FileStorage
 
 
 class AddressDB:
     """地址数据库操作类"""
 
-    def __init__(self, db_path: Optional[Path] = None):
-        if db_path is None:
-            db_path = Path(__file__).parent.parent.parent / "data" / "address_db.json"
-        self.db_path = db_path
-        self._ensure_db_exists()
-
-    def _ensure_db_exists(self):
-        """确保数据库文件存在"""
-        if not self.db_path.exists():
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            self._save_data({"addresses": [], "uid_sequence": {}})
+    def __init__(self, storage: Optional[FileStorage] = None):
+        if storage is None:
+            storage = FileStorage(get_address_db_file())
+        self._storage = storage
 
     def _load_data(self) -> Dict:
         """加载数据库数据"""
-        try:
-            with open(self.db_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            return {"addresses": [], "uid_sequence": {}}
+        return self._storage.load()
 
     def _save_data(self, data: Dict):
         """保存数据库数据"""
-        with open(self.db_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+        self._storage.save(data)
 
     def _generate_address_id(self, uid: str) -> str:
         """生成地址ID

@@ -7,14 +7,8 @@ from pathlib import Path
 
 from hhh_lemeng.handler.common.lemeng.pringLog import get_log
 from hhh_lemeng.handler.service.hhhLemengService import HhhLemengService
-from hhh_lemeng.handler.common.lemeng.data_path import (
-    get_data_dir,
-    get_backup_dir,
-    get_inventory_data_file,
-    get_inventory_nums_file,
-    get_inventory_meta_file,
-    get_inventory_category_map_file,
-)
+from hhh_lemeng.handler.common.lemeng.inventory_storage import get_inventory_storage
+from hhh_lemeng.handler.common.lemeng.data_path import get_data_dir, get_backup_dir
 
 
 async def update_inventory_data(
@@ -30,10 +24,8 @@ async def update_inventory_data(
     """
     work_path = get_data_dir()
     backup_dir = get_backup_dir()
-    data_file = get_inventory_data_file()
-    nums_file = get_inventory_nums_file()
-    meta_file = get_inventory_meta_file()
-    category_map_file = get_inventory_category_map_file()
+    inventory_storage = get_inventory_storage()
+    data_file = inventory_storage.get_data_file()
 
     # 1. 备份旧数据（保留最近3份到 backup/ 目录）
     if data_file.exists():
@@ -68,25 +60,10 @@ async def update_inventory_data(
         print(f"第 {page_no} 页获取 {len(result)} 条数据，当前累计 {len(all_items)} 条")
         page_no += 1
 
-    # 3. 保存数据
-    with open(data_file, "w", encoding="utf-8") as f:
-        json.dump(all_items, f, ensure_ascii=False, indent=2)
+    # 3. 保存完整库存数据
+    inventory_storage.save_full_data(all_items)
 
-    # 4. 保存 item_nums 列表
-    items = [item.get("item_num") for item in all_items]
-    with open(nums_file, "w", encoding="utf-8") as f:
-        json.dump(items, f, ensure_ascii=False)
-
-    # 5. 保存元数据
-    meta = {
-        "updated_at": datetime.now().isoformat(),
-        "total_count": len(all_items),
-        "storehouse_num": storehouse_num,
-    }
-    with open(meta_file, "w", encoding="utf-8") as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
-
-    # 6. 批量并发获取商品分类信息并缓存
+    # 4. 批量并发获取商品分类信息并缓存
     print("\n📦 正在并发获取商品分类信息...")
     category_map = {}
     batch_size = 100
@@ -116,7 +93,7 @@ async def update_inventory_data(
         items_list, _ = lemengService.process_resp(result)
         return items_list
 
-    # 将items分成batches
+    items = [item.get("item_num") for item in all_items]
     batches = [items[i : i + batch_size] for i in range(0, len(items), batch_size)]
 
     # 使用信号量控制并发数
@@ -152,8 +129,10 @@ async def update_inventory_data(
             f"   进度 {processed_items}/{len(items)} 条 ({processed_items * 100 // len(items)}%)"
         )
 
-    with open(category_map_file, "w", encoding="utf-8") as f:
-        json.dump(category_map, f, ensure_ascii=False)
+    # 5. 统一保存 item_nums、category_map、meta
+    inventory_storage.save_all(all_items, category_map, storehouse_num)
+    meta = inventory_storage.get_meta()
+
     print(f"✅ 分类信息已缓存: {len(category_map)} 条商品")
 
     print(f"\n✅ 库存更新完成！共 {len(all_items)} 条商品")
@@ -357,27 +336,27 @@ async def main():
     # print(result)
 
     # ========== 库存查询 ==========
-    result, _ = await lemengService.nhsoft_amazon_inventory_find(
-        storehouse_num=264030025,
-        # item_nums=[
-        #     62070,
-        #     62071,
-        #     62072,
-        #     62073,
-        #     62074,
-        #     62075,
-        #     62076,
-        #     62077,
-        #     62078,
-        #     62079,
-        # ],
-        page_no=1,
-        page_size=100,
-    )
-    print(result)
-    print([item.get("item_num") for item in result])
+    # result, _ = await lemengService.nhsoft_amazon_inventory_find(
+    #     storehouse_num=264030025,
+    #     # item_nums=[
+    #     #     62070,
+    #     #     62071,
+    #     #     62072,
+    #     #     62073,
+    #     #     62074,
+    #     #     62075,
+    #     #     62076,
+    #     #     62077,
+    #     #     62078,
+    #     #     62079,
+    #     # ],
+    #     page_no=1,
+    #     page_size=100,
+    # )
+    # print(result)
+    # print([item.get("item_num") for item in result])
 
-    # await update_inventory_data(lemengService)
+    await update_inventory_data(lemengService)
 
     # ========== 商品档案查询-有库存商品 ==========
     # result, msg = await lemengService.nhsoft_amazon_basic_item_find(
