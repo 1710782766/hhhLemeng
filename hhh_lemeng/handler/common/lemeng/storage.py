@@ -15,12 +15,12 @@ class Storage(ABC):
     """存储接口抽象基类"""
 
     @abstractmethod
-    def load(self) -> Dict[str, Any]:
+    def load(self) -> Any:
         """加载数据"""
         pass
 
     @abstractmethod
-    def save(self, data: Dict[str, Any]) -> None:
+    def save(self, data: Any) -> None:
         """保存数据"""
         pass
 
@@ -44,12 +44,12 @@ class FileStorage(Storage):
             default_data: 不存在时返回的默认数据
         """
         self.file_path = file_path
-        self.default_data = default_data or {}
+        self.default_data = default_data if default_data is not None else {}
 
     def exists(self) -> bool:
         return self.file_path.exists()
 
-    def load(self) -> Dict[str, Any]:
+    def load(self) -> Any:
         """加载 JSON 文件数据"""
         if not self.exists():
             return self.default_data.copy()
@@ -57,9 +57,7 @@ class FileStorage(Storage):
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, dict):
-                    return data
-                return self.default_data.copy()
+                return data
         except (json.JSONDecodeError, IOError):
             return self.default_data.copy()
 

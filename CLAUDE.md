@@ -76,20 +76,23 @@ hhh_lemeng/
         ├── error.py                   # LemRequestError 业务异常
         ├── pringLog.py                # 日志配置
         ├── utils.py                   # BaseHandler、error_handler 装饰器
-        └── address_db.py              # 收货地址本地数据库（2026-03-27新增）
+        ├── storage.py                 # 存储抽象层（可迁移到数据库）
+        ├── inventory_storage.py       # 库存数据存储管理
+        └── address_db.py              # 收货地址本地数据库
 ```
 
-### 已封装的 API 方法（共 22 个）
+### 已封装的 API 方法（共 25 个）
 
 | 分类        | 方法名                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------- |
-| 供应链-批发 | `wholesale_book_find` / `read` / `save` / `saveandaudit`                                  |
+| 供应链-批发 | `wholesale_book_find` / `read` / `save` / `saveandaudit` / `delete`                        |
 | 供应链-采购 | `purchase_order_find` / `save` / `saveandaudit` / `read`                                  |
 | 门店        | `branch_list`                                                                                   |
 | 仓库        | `basic_storehouse_find`                                                                         |
-| 商品档案    | `basic_item_find` / `read` / `itemcategory_find` / `department_find` / `itemimage_find` |
+| 商品档案    | `basic_item_find` / `read` / `itemcategory_find` / `department_find` / `itemimage_find` / `item_image_find` |
 | 供应商档案  | `basic_supplier_find` / `read`                                                                |
 | 客户档案    | `basic_client_find` / `save` / `update` / `category_find` / `address_read`              |
+| 库存        | `inventory_find`                                                                              |
 
 ### HTTP 接口清单（前端调用）
 

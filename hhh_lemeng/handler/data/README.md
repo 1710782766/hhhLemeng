@@ -9,5 +9,13 @@
 | `inventory_item_nums.json` | ~29KB | 商品编号数据 |
 | `inventory_meta.json` | ~100B | 库存元数据 |
 | `address_db.json` | ~1KB | 收货地址本地数据库 |
+| `nhsoft_token_cache.json` | ~500B | OAuth Token 缓存 |
+| `backup/` | - | 库存历史备份目录 |
 
 以上文件可通过服务运行时重新获取，无需提交。
+
+## 存储抽象
+
+所有数据读写通过 `InventoryStorage` 和 `AddressDB` 统一管理（详见 `handler/common/lemeng/`）。
+
+将来迁移到数据库时，只需修改存储实现，业务代码无需改动。
